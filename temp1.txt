@@ -1,0 +1,268 @@
+"use client";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence, useInView } from "framer-motion";
+
+const C = {
+  coral:"#FF6B6B",purple:"#A855F7",navy:"#0D0B1E",
+  green:"#4ADE80",teal:"#2DD4BF",blue:"#60A5FA",amber:"#FBBF24",
+  card:"rgba(255,255,255,0.028)",border:"rgba(255,255,255,0.07)",
+};
+
+function G({ children, from=C.green, to=C.teal }) {
+  return <span className="bg-clip-text text-transparent" style={{backgroundImage:`linear-gradient(135deg,${from},${to})`}}>{children}</span>;
+}
+function Reveal({ children, delay=0, y=40, className }) {
+  const ref=useRef(null); const inV=useInView(ref,{once:true,margin:"-50px"});
+  return <motion.div ref={ref} className={className} initial={{opacity:0,y}} animate={inV?{opacity:1,y:0}:{}} transition={{duration:0.75,delay,ease:[0.22,1,0.36,1]}}>{children}</motion.div>;
+}
+function NeuralLogo({size=32}) {
+  const nodes=[{x:14,y:6},{x:34,y:10},{x:8,y:22},{x:28,y:18},{x:44,y:26},{x:14,y:34},{x:34,y:38},{x:20,y:50}];
+  const edges=[[0,3],[1,3],[2,3],[3,4],[3,5],[3,6],[5,7],[6,7],[4,6]];
+  return (<svg width={size} height={size} viewBox="0 0 52 56" fill="none" overflow="visible">
+    <defs><linearGradient id="nlg3" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor={C.coral}/><stop offset="100%" stopColor={C.purple}/></linearGradient>
+    <filter id="nglow3"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+    {edges.map(([a,b],i)=><line key={i} x1={nodes[a].x} y1={nodes[a].y} x2={nodes[b].x} y2={nodes[b].y} stroke="url(#nlg3)" strokeWidth="1.2" strokeOpacity="0.5"/>)}
+    {nodes.map((n,i)=><circle key={i} cx={n.x} cy={n.y} r="3" fill="url(#nlg3)" filter="url(#nglow3)"/>)}
+  </svg>);
+}
+function Navbar() {
+  return (<motion.nav initial={{y:-60,opacity:0}} animate={{y:0,opacity:1}} transition={{duration:0.6}} className="fixed top-0 left-0 right-0 z-50" style={{background:"rgba(13,11,30,0.92)",borderBottom:`1px solid ${C.border}`,backdropFilter:"blur(16px)"}}>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <a href="#" className="flex items-center gap-2.5"><motion.div whileHover={{rotate:10,scale:1.08}}><NeuralLogo size={34}/></motion.div>
+        <span className="text-lg font-black"><span style={{color:C.coral}}>ML</span><span style={{color:C.purple}}>era</span></span>
+        <span className="hidden sm:inline text-[10px] font-mono text-white/20 border border-white/10 px-1.5 py-0.5 rounded">IDRP</span></a>
+      <div className="flex items-center gap-3">
+        <span className="hidden sm:flex items-center gap-1.5 text-xs text-white/30 font-mono"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"/>Module 5 of 5</span>
+        <motion.button whileHover={{scale:1.04}} whileTap={{scale:0.96}} className="text-xs px-4 py-2 rounded-lg font-semibold text-white" style={{background:`linear-gradient(135deg,${C.coral},${C.purple})`}}>Dashboard</motion.button>
+      </div>
+    </div>
+  </motion.nav>);
+}
+function Card({ children, delay=0, glow=false }) {
+  return (<Reveal delay={delay}><motion.div whileHover={{boxShadow:`0 8px 60px rgba(74,222,128,${glow?"0.12":"0.06"})`}} className="rounded-2xl border p-6 sm:p-8 relative overflow-hidden" style={{background:C.card,borderColor:C.border}}>
+    <div className="absolute top-0 right-0 w-48 h-48 opacity-[0.03] pointer-events-none" style={{background:`radial-gradient(circle,${C.green},transparent)`}}/>
+    {children}
+  </motion.div></Reveal>);
+}
+function SectionHeader({ number, title, subtitle }) {
+  return (<div className="flex items-start gap-4 mb-2"><motion.div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black text-white flex-shrink-0"
+    style={{background:`linear-gradient(135deg,${C.green},${C.teal})`}} whileHover={{scale:1.1,rotate:5}} transition={{type:"spring",stiffness:400}}>{number}</motion.div>
+    <div><h2 className="text-lg sm:text-xl font-bold text-white">{title}</h2>{subtitle&&<p className="text-xs text-white/35 font-mono mt-0.5">{subtitle}</p>}</div>
+  </div>);
+}
+
+// ─── ★ ENHANCED GRID WORLD Q-LEARNING ────────────────────────────────────────
+const GRID_SIZE = 5;
+const GOAL = { r: 4, c: 4 };
+const TRAPS = [{ r: 1, c: 1 }, { r: 2, c: 3 }, { r: 3, c: 1 }];
+const WALLS = [{ r: 1, c: 3 }, { r: 2, c: 1 }];
+
+const isGoal = (r,c) => r===GOAL.r && c===GOAL.c;
+const isTrap = (r,c) => TRAPS.some(t=>t.r===r&&t.c===c);
+const isWall = (r,c) => WALLS.some(w=>w.r===r&&w.c===c);
+
+function GridWorld() {
+  const [agentPos, setAgentPos] = useState({ r:0, c:0 });
+  const [trail, setTrail] = useState([{r:0,c:0}]);
+  const [steps, setSteps] = useState(0);
+  const [reward, setReward] = useState(0);
+  const [status, setStatus] = useState("idle");
+  const [episode, setEpisode] = useState(1);
+  const [qTable, setQTable] = useState({});
+  const [particles, setParticles] = useState([]);
+  const [winStreak, setWinStreak] = useState(0);
+  const [episodeHistory, setEpisodeHistory] = useState([]);
+  const [autoPlay, setAutoPlay] = useState(false);
+  const intervalRef = useRef(null);
+  const autoRef = useRef(null);
+
+  const dirs = [{r:-1,c:0,label:"↑"},{r:1,c:0,label:"↓"},{r:0,c:-1,label:"←"},{r:0,c:1,label:"→"}];
+
+  const getQ = useCallback((r,c,a) => qTable[`${r},${c},${a}`] || 0, [qTable]);
+  const setQ = useCallback((r,c,a,val) => setQTable(prev=>({...prev,[`${r},${c},${a}`]:val})), []);
+
+  const getBestAction = useCallback((r,c) => {
+    let best=0, bestV=-Infinity;
+    dirs.forEach((_,i)=>{ const v=getQ(r,c,i); if(v>bestV){bestV=v;best=i;} });
+    return best;
+  },[getQ]);
+
+  const step = useCallback((r,c,epsilon=0.3) => {
+    let actionIdx;
+    if(Math.random()<epsilon) actionIdx = Math.floor(Math.random()*4);
+    else actionIdx = getBestAction(r,c);
+    const d = dirs[actionIdx];
+    const nr = Math.max(0,Math.min(GRID_SIZE-1, r+d.r));
+    const nc = Math.max(0,Math.min(GRID_SIZE-1, c+d.c));
+    if(isWall(nr,nc)) return {nr:r,nc:c,reward:-0.1,done:false,actionIdx};
+    let rew = -0.1; let done = false;
+    if(isGoal(nr,nc)){rew=1;done=true;}
+    else if(isTrap(nr,nc)){rew=-1;done=true;}
+    const lr=0.3, gamma=0.9;
+    const old=getQ(r,c,actionIdx);
+    const nextMax=Math.max(...dirs.map((_,i)=>getQ(nr,nc,i)));
+    const newQ = old + lr*(rew+gamma*nextMax-old);
+    setQ(r,c,actionIdx,newQ);
+    return {nr,nc,reward:rew,done,actionIdx};
+  },[getQ,setQ,getBestAction]);
+
+  const spawnParticles = (r,c,color,count=8) => {
+    const ps = Array.from({length:count},(_,i)=>({
+      id:Date.now()+i, r, c,
+      vx:(Math.random()-0.5)*3, vy:(Math.random()-0.5)*3,
+      color, life:1
+    }));
+    setParticles(prev=>[...prev,...ps]);
+    setTimeout(()=>setParticles(prev=>prev.filter(p=>!ps.find(pp=>pp.id===p.id))),800);
+  };
+
+  const runEpisode = useCallback(() => {
+    if(status==="running") return;
+    setStatus("running");
+    let r=0,c=0,totalR=0,s=0;
+    setAgentPos({r,c}); setTrail([{r,c}]);
+    const eps = Math.max(0.05, 0.8/episode);
+    intervalRef.current = setInterval(()=>{
+      const {nr,nc,reward:rew,done} = step(r,c,eps);
+      r=nr; c=nc; totalR+=rew; s++;
+      setAgentPos({r,c});
+      setTrail(prev=>[...prev.slice(-10),{r,c}]);
+      setSteps(s); setReward(+totalR.toFixed(2));
+      if(done||s>60){
+        clearInterval(intervalRef.current);
+        const won=isGoal(r,c);
+        const lost=isTrap(r,c);
+        setStatus(won?"won":lost?"lost":"timeout");
+        if(won) { spawnParticles(r,c,C.green,12); setWinStreak(w=>w+1); }
+        else { spawnParticles(r,c,C.coral,8); setWinStreak(0); }
+        setEpisode(e=>e+1);
+        setEpisodeHistory(h=>[...h.slice(-19),{ep:episode,reward:+totalR.toFixed(2),won,steps:s}]);
+      }
+    },140);
+  },[step,episode,status]);
+
+  useEffect(()=>{
+    if(autoPlay && status!=="running") {
+      autoRef.current = setTimeout(()=>runEpisode(), 600);
+    }
+    return ()=>clearTimeout(autoRef.current);
+  },[autoPlay, status, runEpisode]);
+
+  useEffect(()=>()=>{ clearInterval(intervalRef.current); clearTimeout(autoRef.current); },[]);
+
+  const reset = ()=>{ clearInterval(intervalRef.current); clearTimeout(autoRef.current); setAutoPlay(false); setAgentPos({r:0,c:0}); setTrail([{r:0,c:0}]); setSteps(0); setReward(0); setStatus("idle"); setQTable({}); setEpisode(1); setWinStreak(0); setEpisodeHistory([]); };
+
+  const qVal = (r,c) => Math.max(...dirs.map((_,i)=>getQ(r,c,i)));
+  const getBestDir = (r,c) => { let best=0,bestV=-Infinity; dirs.forEach((d,i)=>{const v=getQ(r,c,i);if(v>bestV){bestV=v;best=i;}}); return bestV>0?dirs[best].label:"·"; };
+
+  return (
+    <div className="space-y-5">
+      <div className="grid sm:grid-cols-2 gap-5 items-start">
+        {/* Grid */}
+        <div className="space-y-3 relative">
+          <div className="grid gap-1.5 relative" style={{gridTemplateColumns:`repeat(${GRID_SIZE},1fr)`}}>
+            {Array.from({length:GRID_SIZE}).map((_,r)=>
+              Array.from({length:GRID_SIZE}).map((_,c)=>{
+                const isAgent = agentPos.r===r&&agentPos.c===c;
+                const trailIdx = trail.findIndex(t=>t.r===r&&t.c===c);
+                const inTrail = trailIdx>=0&&!isAgent;
+                const trailOpacity = inTrail ? (trailIdx/trail.length)*0.4 : 0;
+                const qv = qVal(r,c);
+                const wall = isWall(r,c);
+                const goal = isGoal(r,c);
+                const trap = isTrap(r,c);
+                const bestDir = episode > 2 && !wall && !goal && !trap ? getBestDir(r,c) : null;
+                return (
+                  <motion.div key={`${r}-${c}`}
+                    className="aspect-square rounded-lg flex items-center justify-center relative overflow-hidden select-none"
+                    style={{background:goal?`${C.green}22`:trap?`${C.coral}22`:wall?"rgba(255,255,255,0.06)":"rgba(255,255,255,0.02)",border:`1px solid ${goal?C.green:trap?C.coral:"rgba(255,255,255,0.06)"}`}}
+                    animate={isAgent?{scale:[1,1.12,1]}:{}} transition={{duration:0.4,repeat:isAgent?Infinity:0}}>
+                    {!wall&&!goal&&!trap&&qv!==0&&(
+                      <div className="absolute inset-0 rounded-lg" style={{background:qv>0?C.green:C.coral,opacity:Math.min(Math.abs(qv)*0.35,0.4)}}/>
+                    )}
+                    {inTrail&&<motion.div className="absolute inset-1 rounded" style={{background:`${C.teal}`,opacity:trailOpacity}} initial={{opacity:0}} animate={{opacity:trailOpacity}}/>}
+                    {isAgent&&(
+                      <motion.div className="w-4 h-4 rounded-full z-10 shadow-lg"
+                        style={{background:`linear-gradient(135deg,${C.green},${C.teal})`,boxShadow:`0 0 14px ${C.green}90`}}
+                        animate={{scale:[1,1.25,1],boxShadow:[`0 0 14px ${C.green}90`,`0 0 22px ${C.green}`,`0 0 14px ${C.green}90`]}}
+                        transition={{duration:0.5,repeat:Infinity}}/>
+                    )}
+                    {goal&&<span className="text-lg z-10">🏁</span>}
+                    {trap&&<span className="text-sm z-10">💀</span>}
+                    {wall&&<span className="text-xs z-10 text-white/15">▪</span>}
+                    {bestDir&&bestDir!=="·"&&!isAgent&&(
+                      <span className="absolute bottom-0.5 left-1 text-[10px] font-bold z-10 opacity-60" style={{color:C.teal}}>{bestDir}</span>
+                    )}
+                    {!wall&&!goal&&!trap&&qv!==0&&(
+                      <span className="absolute top-0.5 right-1 text-[8px] font-mono opacity-50 z-10" style={{color:qv>0?C.green:C.coral}}>{qv.toFixed(1)}</span>
+                    )}
+                  </motion.div>
+                );
+              })
+            )}
+          </div>
+          <div className="flex flex-wrap gap-3 text-xs font-mono">
+            {[{col:C.green,label:"Goal 🏁"},{col:C.coral,label:"Trap 💀"},{col:"rgba(255,255,255,0.2)",label:"Wall"},{col:C.teal,label:"Agent 🤖"},{col:"rgba(45,212,191,0.4)",label:"Trail"}].map(l=>(
+              <span key={l.label} className="flex items-center gap-1.5 text-white/35"><span className="w-2.5 h-2.5 rounded-sm" style={{background:l.col}}/>{l.label}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Stats & Controls */}
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-2.5">
+            {[{label:"Episode",val:episode,col:C.purple},{label:"Steps",val:steps,col:C.teal},{label:"Reward",val:reward,col:reward>=0?C.green:C.coral},{label:"Win Streak",val:`${winStreak}🔥`,col:C.amber}].map(s=>(
+              <div key={s.label} className="rounded-xl py-3 px-3 text-center border" style={{background:"rgba(255,255,255,0.02)",borderColor:C.border}}>
+                <div className="text-[10px] font-mono text-white/30 mb-1 uppercase tracking-widest">{s.label}</div>
+                <motion.div key={String(s.val)} initial={{scale:0.8,opacity:0}} animate={{scale:1,opacity:1}} className="text-base font-black font-mono" style={{color:s.col}}>{s.val}</motion.div>
+              </div>
+            ))}
+          </div>
+
+          {/* Status banner */}
+          <AnimatePresence mode="wait">
+            <motion.div key={status} initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}}
+              className="rounded-xl px-4 py-3 text-center text-sm font-bold border"
+              style={{background:status==="won"?`${C.green}15`:status==="lost"?`${C.coral}15`:`${C.teal}10`,borderColor:status==="won"?`${C.green}30`:status==="lost"?`${C.coral}30`:`${C.teal}20`,color:status==="won"?C.green:status==="lost"?C.coral:status==="running"?C.teal:"rgba(255,255,255,0.4)"}}>
+              {status==="won"?"🏆 Goal Reached! Great learning!":status==="lost"?"💀 Trap! But the agent learns...":status==="running"?"⚡ Agent is exploring...":"⏸ Ready — Run an episode!"}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Episode chart */}
+          {episodeHistory.length > 1 && (
+            <div className="rounded-xl p-3 border" style={{background:"rgba(0,0,0,0.3)",borderColor:C.border}}>
+              <div className="text-[10px] font-mono text-white/30 mb-2 uppercase tracking-widest">Reward History (last 20)</div>
+              <div className="flex items-end gap-0.5 h-14">
+                {episodeHistory.map((ep,i)=>{
+                  const norm = (ep.reward+1)/2;
+                  return <motion.div key={i} className="flex-1 rounded-t" initial={{height:0}} animate={{height:`${Math.max(10,norm*100)}%`}}
+                    style={{background:ep.won?C.green:C.coral,opacity:0.7}} title={`Ep ${ep.ep}: ${ep.reward}`}/>;
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <motion.button onClick={runEpisode} disabled={status==="running"}
+              whileHover={status!=="running"?{scale:1.04,boxShadow:`0 0 30px ${C.green}40`}:{}} whileTap={status!=="running"?{scale:0.97}:{}}
+              className="flex-1 py-3 rounded-xl font-bold text-black text-sm"
+              style={{background:`linear-gradient(135deg,${C.green},${C.teal})`,opacity:status==="running"?0.6:1}}>
+              {status==="running"?"⚡ Running...":"▶ Run Episode"}
+            </motion.button>
+            <motion.button onClick={()=>setAutoPlay(a=>!a)} whileHover={{scale:1.04}} whileTap={{scale:0.97}}
+              className="px-3 py-3 rounded-xl text-xs font-bold border transition-all"
+              style={{borderColor:autoPlay?`${C.amber}60`:C.border,background:autoPlay?`${C.amber}15`:"rgba(255,255,255,0.02)",color:autoPlay?C.amber:"rgba(255,255,255,0.4)"}}>
+              {autoPlay?"⏹ Stop":"🔁 Auto"}
+            </motion.button>
+            <motion.button onClick={reset} whileHover={{scale:1.04}} whileTap={{scale:0.97}}
+              className="px-3 py-3 rounded-xl text-sm font-semibold text-white/55 border hover:text-white transition-colors"
+              style={{borderColor:C.border,background:"rgba(255,255,255,0.02)"}}>↺</motion.button>
+          </div>
+          <p className="text-xs text-white/28 font-mono text-center">
+            {episode>5?"🧠 Arrows = learned policy direction!":"Run 5+ episodes to see learned policy arrows appear."}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}

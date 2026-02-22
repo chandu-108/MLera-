@@ -1,0 +1,188 @@
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+export default function ReinforcementLearningPage() {
+  return (
+    <div className="min-h-screen text-white" style={{background:C.navy}}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        *{box-sizing:border-box;margin:0;padding:0;} html{scroll-behavior:smooth;} body{overflow-x:hidden;}
+        input[type=range]{-webkit-appearance:none;background:transparent;width:100%;}
+        input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:${C.teal};cursor:pointer;margin-top:-5px;}
+        input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:rgba(255,255,255,0.08);}
+        ::-webkit-scrollbar{width:3px;} ::-webkit-scrollbar-track{background:#060410;}
+        ::-webkit-scrollbar-thumb{background:linear-gradient(#4ADE80,#2DD4BF);border-radius:2px;}
+        ::selection{background:rgba(74,222,128,0.3);color:white;}
+      `}</style>
+      <Navbar />
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-1/4 left-1/3 w-[600px] h-[600px] rounded-full blur-[160px] opacity-[0.07]" style={{background:C.green}}/>
+        <div className="absolute bottom-1/3 right-1/4 w-[500px] h-[500px] rounded-full blur-[140px] opacity-[0.06]" style={{background:C.teal}}/>
+        <motion.div className="absolute top-1/2 left-1/2 w-[300px] h-[300px] rounded-full blur-[100px] opacity-[0.04]" style={{background:C.purple}}
+          animate={{x:[-50,50,-50],y:[-30,30,-30]}} transition={{duration:15,repeat:Infinity,ease:"easeInOut"}}/>
+        <div className="absolute inset-0 opacity-[0.025]" style={{backgroundImage:"radial-gradient(rgba(74,222,128,1) 1px,transparent 1px)",backgroundSize:"40px 40px"}}/>
+      </div>
+
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20 space-y-6 sm:space-y-8">
+        {/* Header */}
+        <div className="space-y-5">
+          <Reveal y={20} delay={0.05}>
+            <div className="flex items-center gap-2 flex-wrap text-xs font-mono">
+              {["Home","Learning Path","Reinforcement Learning"].map((item,i)=>(
+                <span key={i} className="flex items-center gap-2">
+                  {i>0&&<span className="text-white/20">›</span>}
+                  <span className={i===2?"text-white/60":"text-white/28 cursor-pointer hover:text-white/55"}>{item}</span>
+                </span>
+              ))}
+            </div>
+          </Reveal>
+          <Reveal delay={0.08}>
+            <div className="flex flex-wrap items-center gap-3 mb-3">
+              <span className="text-xs font-mono px-3 py-1.5 rounded-full border" style={{borderColor:`${C.green}40`,background:`${C.green}0d`,color:C.green}}>🎮 Advanced · 60 min</span>
+              <span className="text-xs font-mono px-3 py-1.5 rounded-full border" style={{borderColor:`${C.teal}40`,background:`${C.teal}0d`,color:C.teal}}>Module 5 · Final Boss</span>
+            </div>
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black leading-tight" style={{fontFamily:"'Georgia',serif"}}>
+              <G from={C.green} to={C.teal}>Reinforcement Learning</G><br/><span className="text-white">Learning by Trial & Error</span>
+            </h1>
+          </Reveal>
+          <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-5">
+            <div className="w-full lg:max-w-sm space-y-2">
+              <div className="flex justify-between text-xs font-mono text-white/35"><span>Module Progress</span><span>5/5 — FINAL</span></div>
+              <div className="h-1.5 rounded-full overflow-hidden" style={{background:"rgba(255,255,255,0.06)"}}>
+                <motion.div className="h-full rounded-full" style={{background:`linear-gradient(90deg,${C.green},${C.teal})`}} initial={{width:0}} animate={{width:"100%"}} transition={{duration:1.2,delay:0.4}}/>
+              </div>
+              <div className="flex gap-1.5">
+                {Array.from({length:5}).map((_,i)=>(
+                  <motion.div key={i} className="flex-1 h-1 rounded-full" style={{background:`linear-gradient(90deg,${C.green},${C.teal})`}}
+                    initial={{scaleX:0}} animate={{scaleX:1}} transition={{duration:0.4,delay:0.5+i*0.1}}/>
+                ))}
+              </div>
+            </div>
+            <Reveal delay={0.2}><motion.a href="/decision-tree" whileHover={{scale:1.04}} whileTap={{scale:0.96}}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm text-white/55 hover:text-white transition-colors cursor-pointer"
+              style={{borderColor:C.border,background:"rgba(255,255,255,0.03)"}}>‹ Decision Trees</motion.a></Reveal>
+          </div>
+        </div>
+
+        {/* Hero */}
+        <Reveal delay={0.1}>
+          <div className="rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden" style={{background:`linear-gradient(135deg,${C.green}12,${C.teal}18)`,border:`1px solid ${C.green}30`}}>
+            <div className="absolute inset-0 opacity-[0.03]" style={{backgroundImage:`linear-gradient(${C.green} 1px,transparent 1px),linear-gradient(90deg,${C.teal} 1px,transparent 1px)`,backgroundSize:"50px 50px"}}/>
+            <motion.div className="text-5xl mb-4" animate={{y:[0,-8,0]}} transition={{duration:2,repeat:Infinity}}>🎮</motion.div>
+            <h2 className="text-2xl sm:text-4xl font-black text-white mb-4" style={{fontFamily:"'Georgia',serif"}}>
+              Learn Like a <G from={C.green} to={C.teal}>Child Playing a Game</G>
+            </h2>
+            <p className="text-white/50 max-w-3xl mx-auto leading-relaxed">No labeled data. No teacher. Just an agent, an environment, and rewards. RL powered AlphaGo, ChatGPT's RLHF fine-tuning, and every game-playing AI you've ever marveled at.</p>
+            <div className="flex flex-wrap justify-center gap-4 mt-6 text-xs font-mono text-white/30">
+              {["Rewards","Policies","Q-Learning","Multi-Armed Bandit","Exploration vs Exploitation"].map(t=>(
+                <span key={t} className="flex items-center gap-1.5">
+                  <span className="w-1 h-1 rounded-full" style={{background:`linear-gradient(135deg,${C.green},${C.teal})`}}/>{t}
+                </span>
+              ))}
+            </div>
+          </div>
+        </Reveal>
+
+        {/* Section 1: GridWorld */}
+        <Card delay={0.1} glow>
+          <SectionHeader number={1} title="Q-Learning Grid World — Train Your Agent" subtitle="Run episodes · Enable Auto-play · Watch policy arrows emerge"/>
+          <div className="mt-6 space-y-4">
+            <p className="text-white/50 text-sm leading-relaxed">
+              An agent starts at top-left and must reach the <span className="font-bold" style={{color:C.green}}>goal 🏁</span> while avoiding <span className="font-bold" style={{color:C.coral}}>traps 💀</span>.
+              Enable <span style={{color:C.amber}}>Auto-play</span> to watch learning happen in real time — tiny policy arrows appear after ~5 episodes!
+            </p>
+            <GridWorld/>
+          </div>
+        </Card>
+
+        {/* Section 2: Bandit Game */}
+        <Card delay={0.12} glow>
+          <SectionHeader number={2} title="Multi-Armed Bandit — The Pure Exploration Game" subtitle="20 pulls to find the best slot machine"/>
+          <div className="mt-6 space-y-4">
+            <p className="text-white/50 text-sm leading-relaxed">
+              The <span className="font-bold" style={{color:C.teal}}>Multi-Armed Bandit</span> is RL stripped to its essence: you have limited tries, unknown rewards, and must balance exploring new options vs exploiting what's already working.
+            </p>
+            <BanditGame/>
+          </div>
+        </Card>
+
+        {/* Section 3: Rewards */}
+        <Card delay={0.13}>
+          <SectionHeader number={3} title="Rewards — The Language of RL" subtitle="Replay animated reward trajectories across scenarios"/>
+          <div className="mt-6 space-y-4">
+            <p className="text-white/50 text-sm leading-relaxed">
+              Reward signals tell the agent what's good (+) and bad (−). The agent's goal: maximize <span className="font-bold" style={{color:C.green}}>total cumulative reward</span> over time — not just immediate gain.
+            </p>
+            <RewardViz/>
+          </div>
+        </Card>
+
+        {/* Section 4: Policies */}
+        <Card delay={0.14}>
+          <SectionHeader number={4} title="Policies — The Agent's Strategy" subtitle="Simulate different exploration strategies"/>
+          <div className="mt-6 space-y-4">
+            <p className="text-white/50 text-sm leading-relaxed">
+              A <span className="font-bold" style={{color:C.teal}}>policy</span> maps every state to an action. Tune epsilon on ε-Greedy, then simulate to compare performance. UCB often beats pure greedy by being "optimistic."
+            </p>
+            <PolicyExplorer/>
+          </div>
+        </Card>
+
+        {/* Section 5: Q-Table */}
+        <Card delay={0.16}>
+          <SectionHeader number={5} title="Q-Table — Memory of Learned Values" subtitle="Click cells to inspect state-action values"/>
+          <div className="mt-6 space-y-4">
+            <p className="text-white/50 text-sm leading-relaxed">
+              Q-Learning stores a value Q(s,a) for every state-action pair. Click any cell to see what it means. ★ marks the best action in each state.
+            </p>
+            <QTableExplainer/>
+          </div>
+        </Card>
+
+        {/* Real World */}
+        <div className="space-y-5">
+          <Reveal><h2 className="text-2xl sm:text-4xl font-black text-white text-center" style={{fontFamily:"'Georgia',serif"}}><G from={C.green} to={C.teal}>Real-World</G> Applications</h2></Reveal>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[{icon:"♟️",title:"Game Playing",desc:"AlphaGo beat world champion Lee Sedol. OpenAI Five defeated Dota 2 pros. Pure RL, zero human strategy."},{icon:"🦾",title:"Robotics",desc:"Robots learn to walk, grasp, and navigate by trial and error in simulation — then deploy in the real world."},{icon:"🚗",title:"Self-Driving Cars",desc:"Lane keeping, intersection decisions, and parking learned through millions of simulated miles of RL training."}].map((item,i)=>(
+              <Reveal key={i} delay={i*0.08}>
+                <motion.div whileHover={{y:-5,boxShadow:`0 16px 50px ${C.green}18`}} className="rounded-2xl border p-5 text-center" style={{background:C.card,borderColor:C.border}}>
+                  <motion.div className="text-4xl mb-3" animate={{y:[0,-6,0]}} transition={{duration:3,repeat:Infinity,delay:i*0.8}}>{item.icon}</motion.div>
+                  <h3 className="font-bold text-white mb-2 text-sm">{item.title}</h3>
+                  <p className="text-white/38 text-xs leading-relaxed">{item.desc}</p>
+                </motion.div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+
+        {/* Completion */}
+        <Reveal delay={0.1}>
+          <div className="rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden"
+            style={{background:`linear-gradient(135deg,${C.green}15,${C.teal}15,${C.purple}15)`,border:`1px solid ${C.green}40`}}>
+            <motion.div className="absolute inset-0 opacity-10" animate={{rotate:360}} transition={{duration:60,repeat:Infinity,ease:"linear"}}
+              style={{background:`conic-gradient(${C.green},${C.teal},${C.purple},${C.green})`}}/>
+            <motion.div className="text-6xl mb-4" animate={{scale:[1,1.1,1],rotate:[0,-5,5,0]}} transition={{duration:2,repeat:Infinity}}>🏆</motion.div>
+            <h3 className="text-2xl sm:text-4xl font-black text-white mb-3" style={{fontFamily:"'Georgia',serif"}}>
+              You've Completed the <G from={C.green} to={C.teal}>MLera Core Path!</G>
+            </h3>
+            <p className="text-white/45 max-w-xl mx-auto mb-8">From Linear Regression to Reinforcement Learning — you've built a solid foundation in Machine Learning. You're ready for the advanced modules.</p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <motion.a href="/" whileHover={{scale:1.04,boxShadow:`0 0 40px ${C.green}40`}} whileTap={{scale:0.97}}
+                className="px-8 py-3.5 rounded-xl text-sm font-bold text-black cursor-pointer"
+                style={{background:`linear-gradient(135deg,${C.green},${C.teal})`}}>🎓 View Certificate</motion.a>
+              <motion.a href="/" whileHover={{scale:1.04}} whileTap={{scale:0.97}}
+                className="px-8 py-3.5 rounded-xl text-sm font-semibold text-white/55 hover:text-white border border-white/10 hover:border-white/25 transition-colors cursor-pointer">
+                Explore Advanced Modules →
+              </motion.a>
+            </div>
+          </div>
+        </Reveal>
+      </main>
+      <footer className="relative z-10 border-t py-8 px-6 text-center" style={{borderColor:C.border}}>
+        <div className="flex items-center justify-center gap-2 mb-2"><NeuralLogo size={24}/>
+          <span className="text-sm font-black"><span style={{color:C.coral}}>ML</span><span style={{color:C.purple}}>era</span></span>
+        </div>
+        <p className="text-white/18 text-xs font-mono">© 2025 MLera · IIIT Dharwad Research Park</p>
+      </footer>
+    </div>
+  );
+}

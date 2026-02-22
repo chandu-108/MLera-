@@ -1,0 +1,393 @@
+
+// ─── ★ INTERACTIVE BANDIT GAME ─────────────────────────────────────────────
+function BanditGame() {
+  const [pulls, setPulls] = useState([0,0,0,0]);
+  const [rewards, setRewards] = useState([0,0,0,0]);
+  const [totalPulls, setTotalPulls] = useState(0);
+  const [lastReward, setLastReward] = useState(null);
+  const [lastArm, setLastArm] = useState(null);
+  const [revealed, setRevealed] = useState(false);
+  const [flashing, setFlashing] = useState(null);
+  // Hidden true probs
+  const trueProbs = [0.2, 0.5, 0.8, 0.4];
+  const colors = [C.coral, C.amber, C.green, C.blue];
+  const names = ["Arm A","Arm B","Arm C","Arm D"];
+
+  const pull = (i) => {
+    if(totalPulls >= 20) return;
+    const won = Math.random() < trueProbs[i];
+    const r = won ? 1 : 0;
+    setFlashing(i);
+    setTimeout(()=>setFlashing(null),500);
+    setPulls(p=>{const n=[...p];n[i]++;return n;});
+    setRewards(rw=>{const n=[...rw];n[i]+=r;return n;});
+    setTotalPulls(t=>t+1);
+    setLastReward(r);
+    setLastArm(i);
+  };
+
+  const reset = ()=>{ setPulls([0,0,0,0]); setRewards([0,0,0,0]); setTotalPulls(0); setLastReward(null); setLastArm(null); setRevealed(false); };
+
+  const avgReward = (i) => pulls[i]>0 ? (rewards[i]/pulls[i]).toFixed(2) : "—";
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-xl p-4 border text-sm text-white/50 leading-relaxed" style={{borderColor:C.border,background:"rgba(255,255,255,0.02)"}}>
+        🎰 You have <span className="font-bold text-white">{20-totalPulls} pulls left</span>. Each arm has a hidden win probability. Explore to find the best arm, then exploit it! Classic <span style={{color:C.teal}}>Multi-Armed Bandit</span> problem.
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {names.map((name,i)=>(
+          <motion.div key={i} className="rounded-2xl border p-4 text-center space-y-3"
+            style={{background:flashing===i?`${colors[i]}20`:"rgba(255,255,255,0.02)",borderColor:flashing===i?colors[i]:C.border}}
+            animate={flashing===i?{scale:[1,1.05,1]}:{}} transition={{duration:0.3}}>
+            <div className="text-2xl">{["🎰","🎲","🎯","🃏"][i]}</div>
+            <div className="font-bold text-white text-sm">{name}</div>
+            <motion.button onClick={()=>pull(i)} disabled={totalPulls>=20}
+              whileHover={totalPulls<20?{scale:1.06,boxShadow:`0 0 20px ${colors[i]}50`}:{}}
+              whileTap={totalPulls<20?{scale:0.95}:{}}
+              className="w-full py-2 rounded-xl text-xs font-black text-black"
+              style={{background:`linear-gradient(135deg,${colors[i]},${colors[i]}aa)`,opacity:totalPulls>=20?0.4:1}}>
+              PULL
+            </motion.button>
+            <div className="space-y-1 text-xs font-mono">
+              <div className="text-white/35">Pulls: <span style={{color:colors[i]}}>{pulls[i]}</span></div>
+              <div className="text-white/35">Win rate: <span className="text-white/70">{avgReward(i)}</span></div>
+              {/* Win rate bar */}
+              <div className="h-1.5 rounded-full overflow-hidden" style={{background:"rgba(255,255,255,0.06)"}}>
+                <motion.div className="h-full rounded-full" style={{background:colors[i]}}
+                  animate={{width:pulls[i]>0?`${(rewards[i]/pulls[i])*100}%`:"0%"}} transition={{duration:0.4}}/>
+              </div>
+            </div>
+            {revealed && (
+              <motion.div initial={{opacity:0,scale:0.8}} animate={{opacity:1,scale:1}} className="text-xs font-mono rounded-lg py-1" style={{background:`${colors[i]}20`,color:colors[i]}}>
+                True: {(trueProbs[i]*100).toFixed(0)}%
+              </motion.div>
+            )}
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Last result */}
+      <AnimatePresence>
+        {lastReward !== null && (
+          <motion.div key={`${totalPulls}`} initial={{opacity:0,x:-20}} animate={{opacity:1,x:0}} exit={{opacity:0}}
+            className="rounded-xl p-3 border text-sm text-center font-bold"
+            style={{background:lastReward?`${C.green}15`:`${C.coral}15`,borderColor:lastReward?`${C.green}30`:`${C.coral}30`,color:lastReward?C.green:C.coral}}>
+            {lastReward?"🎉 Win! +1 reward":"😞 Loss — keep exploring"}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="flex gap-3">
+        {totalPulls >= 20 && !revealed && (
+          <motion.button onClick={()=>setRevealed(true)} initial={{opacity:0,y:10}} animate={{opacity:1,y:0}}
+            whileHover={{scale:1.04,boxShadow:`0 0 30px ${C.amber}40`}} whileTap={{scale:0.97}}
+            className="flex-1 py-3 rounded-xl font-bold text-black text-sm"
+            style={{background:`linear-gradient(135deg,${C.amber},${C.coral})`}}>
+            🔍 Reveal True Probabilities!
+          </motion.button>
+        )}
+        <motion.button onClick={reset} whileHover={{scale:1.04}} whileTap={{scale:0.97}}
+          className="flex-1 py-3 rounded-xl font-bold text-sm border text-white/60 hover:text-white"
+          style={{borderColor:C.border,background:"rgba(255,255,255,0.02)"}}>↺ New Game</motion.button>
+      </div>
+
+      {revealed && (
+        <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} className="rounded-xl p-4 border text-sm" style={{borderColor:`${C.green}30`,background:`${C.green}08`}}>
+          <div className="font-bold text-white mb-2">🧠 Analysis</div>
+          <p className="text-white/50 text-xs leading-relaxed">The best arm was <span style={{color:C.green}}>Arm C (80% win rate)</span>. Did you discover it through exploration? An optimal ε-greedy agent would spend ~20% time exploring and 80% exploiting the best arm.</p>
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+// ─── ★ REWARD CONCEPTS VISUALIZER ────────────────────────────────────────────
+function RewardViz() {
+  const [scenario, setScenario] = useState(0);
+  const [animStep, setAnimStep] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const playRef = useRef(null);
+
+  const scenarios = [
+    { title:"Game Playing", icon:"🎮", col:C.teal, events:[
+      {t:0,r:0,label:"Start"},{t:5,r:-0.1,label:"Move left"},{t:10,r:-0.1,label:"Move right"},
+      {t:15,r:-1,label:"Hit obstacle"},{t:20,r:-0.1,label:"Try again"},{t:25,r:0.5,label:"Coin!"},
+      {t:30,r:-0.1,label:"Exploring"},{t:35,r:1,label:"Level done!"},
+    ]},
+    { title:"Robot Navigation", icon:"🤖", col:C.purple, events:[
+      {t:0,r:0,label:"Start"},{t:5,r:-0.1,label:"Step fwd"},{t:10,r:-0.5,label:"Bumped wall"},
+      {t:15,r:-0.1,label:"Backtrack"},{t:20,r:-0.1,label:"Turn left"},{t:25,r:-0.1,label:"Step fwd"},
+      {t:30,r:0.3,label:"Closer!"},{t:35,r:1,label:"Goal!"},
+    ]},
+    { title:"Self-Driving", icon:"🚗", col:C.amber, events:[
+      {t:0,r:0,label:"Start"},{t:5,r:0.1,label:"Smooth lane"},{t:10,r:-0.3,label:"Hard brake"},
+      {t:15,r:0.1,label:"Safe follow"},{t:20,r:-0.5,label:"Lane drift"},{t:25,r:0.2,label:"Signal"},
+      {t:30,r:0.1,label:"Merge"},{t:35,r:1,label:"Destination!"},
+    ]},
+  ];
+
+  const sc = scenarios[scenario];
+  const W=420, H=160, PAD=40;
+  const tMax=35, rMin=-1.3, rMax=1.3;
+  const px=t=>PAD+(t/tMax)*(W-PAD*2);
+  const py=r=>H-PAD-((r-rMin)/(rMax-rMin))*(H-PAD*2);
+
+  let cumR=0;
+  const cumPts = sc.events.map(e=>{ cumR+=e.r; return {t:e.t,r:cumR}; });
+  const visibleEvents = sc.events.slice(0, animStep+1);
+  const visibleCum = cumPts.slice(0, animStep+1);
+
+  const playAnim = () => {
+    setPlaying(true); setAnimStep(0);
+    let s=0;
+    playRef.current = setInterval(()=>{
+      s++; setAnimStep(s);
+      if(s>=sc.events.length-1){clearInterval(playRef.current);setPlaying(false);}
+    },600);
+  };
+
+  useEffect(()=>{ setAnimStep(sc.events.length-1); },[scenario]);
+  useEffect(()=>()=>clearInterval(playRef.current),[]);
+
+  const pathD = (pts) => pts.map((p,i)=>`${i===0?"M":"L"}${px(p.t)},${py(p.r)}`).join(" ");
+
+  return (
+    <div className="space-y-5">
+      <div className="flex gap-2 flex-wrap">
+        {scenarios.map((s,i)=>(
+          <motion.button key={i} onClick={()=>{setScenario(i);setAnimStep(s.events.length-1);}} whileHover={{scale:1.04}} whileTap={{scale:0.97}}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all"
+            style={{borderColor:scenario===i?`${s.col}60`:C.border,background:scenario===i?`${s.col}15`:"rgba(255,255,255,0.02)",color:scenario===i?s.col:"rgba(255,255,255,0.4)"}}>
+            {s.icon} {s.title}
+          </motion.button>
+        ))}
+      </div>
+
+      <div className="rounded-xl overflow-hidden" style={{background:"rgba(0,0,0,0.35)",border:`1px solid ${C.border}`}}>
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto">
+          <line x1={PAD} y1={py(0)} x2={W-PAD} y2={py(0)} stroke="rgba(255,255,255,0.08)" strokeDasharray="4 4"/>
+          <text x={PAD-4} y={py(0)+4} textAnchor="end" fill="rgba(255,255,255,0.25)" fontSize="8" fontFamily="monospace">0</text>
+          <text x={PAD-4} y={py(1)+4} textAnchor="end" fill={C.green} fontSize="8" fontFamily="monospace">+1</text>
+          <text x={PAD-4} y={py(-1)+4} textAnchor="end" fill={C.coral} fontSize="8" fontFamily="monospace">-1</text>
+
+          {/* Cumulative reward path */}
+          {visibleCum.length > 1 && (
+            <motion.path d={pathD(visibleCum)} fill="none" stroke={sc.col} strokeWidth="2" strokeOpacity="0.7"
+              initial={{pathLength:0}} animate={{pathLength:1}} transition={{duration:0.5}}/>
+          )}
+
+          {/* Individual reward dots */}
+          {visibleEvents.map((e,i)=>(
+            <g key={i}>
+              <motion.circle cx={px(e.t)} cy={py(e.r)} r="5" fill={e.r>=0?C.green:C.coral} stroke="white" strokeWidth="1.5" strokeOpacity="0.4"
+                initial={{scale:0}} animate={{scale:1}} transition={{type:"spring",stiffness:400,delay:0.1}}/>
+              {i===visibleEvents.length-1&&(
+                <motion.text x={px(e.t)} y={py(e.r)-10} textAnchor="middle" fill="white" fontSize="8" fontFamily="monospace" opacity="0.7"
+                  initial={{opacity:0}} animate={{opacity:1}}>{e.label}</motion.text>
+              )}
+            </g>
+          ))}
+        </svg>
+      </div>
+
+      <div className="flex gap-3">
+        <motion.button onClick={playAnim} disabled={playing} whileHover={!playing?{scale:1.04}:{}} whileTap={!playing?{scale:0.97}:{}}
+          className="flex-1 py-2.5 rounded-xl text-sm font-bold text-black"
+          style={{background:`linear-gradient(135deg,${sc.col},${sc.col}aa)`,opacity:playing?0.6:1}}>
+          {playing?"⏳ Animating...":"▶ Replay Animation"}
+        </motion.button>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3 text-center text-xs font-mono">
+        {[{label:"Total Steps",val:sc.events.length},{label:"Total Reward",val:visibleCum[visibleCum.length-1]?.r.toFixed(2)},{label:"Final Event",val:visibleEvents[visibleEvents.length-1]?.label}].map(s=>(
+          <div key={s.label} className="rounded-xl py-2 px-2 border" style={{background:"rgba(255,255,255,0.02)",borderColor:C.border}}>
+            <div className="text-white/30 text-[9px] uppercase tracking-widest mb-1">{s.label}</div>
+            <div className="text-white font-bold text-sm">{s.val}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── ★ POLICY EXPLORER WITH SIMULATION ───────────────────────────────────────
+function PolicyExplorer() {
+  const [selected, setSelected] = useState(1);
+  const [simRunning, setSimRunning] = useState(false);
+  const [simResult, setSimResult] = useState(null);
+  const [epsilonVal, setEpsilonVal] = useState(0.3);
+  const simRef = useRef(null);
+
+  const policies = [
+    {name:"Greedy",icon:"😤",col:C.coral,desc:"Always exploit — pick highest known reward. Fast but misses better options.",reward:0.6,explore:0},
+    {name:"ε-Greedy",icon:"🎯",col:C.teal,desc:"Explore with probability ε, otherwise exploit. Gold standard approach.",reward:0.85,explore:30},
+    {name:"Random",icon:"🎲",col:C.purple,desc:"Always explore randomly. Very slow to converge, but thorough.",reward:-0.1,explore:100},
+    {name:"UCB",icon:"📈",col:C.amber,desc:"Upper Confidence Bound — tries less-visited actions optimistically.",reward:0.9,explore:15},
+  ];
+
+  const p = policies[selected];
+
+  const runSimulation = () => {
+    setSimRunning(true); setSimResult(null);
+    const epsilon = selected===1?epsilonVal:selected===0?0:selected===2?1:0.15;
+    let totalR=0, steps=0, wins=0;
+    // Simulate 30 rounds
+    for(let i=0;i<30;i++){
+      if(Math.random()<epsilon||i<5) totalR+=Math.random()>0.5?0.5:-0.3;
+      else totalR+=Math.random()<0.8?1:-0.1;
+      steps++;
+      if(totalR>0) wins++;
+    }
+    setTimeout(()=>{
+      setSimResult({reward:+totalR.toFixed(2),wins,steps});
+      setSimRunning(false);
+    },1200);
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {policies.map((pol,i)=>(
+          <motion.button key={i} onClick={()=>setSelected(i)} whileHover={{scale:1.03}} whileTap={{scale:0.97}}
+            className="rounded-xl p-3 border text-center transition-all"
+            style={{borderColor:selected===i?`${pol.col}60`:C.border,background:selected===i?`${pol.col}12`:"rgba(255,255,255,0.02)"}}>
+            <div className="text-xl mb-1">{pol.icon}</div>
+            <div className="text-xs font-bold" style={{color:selected===i?pol.col:"rgba(255,255,255,0.5)"}}>{pol.name}</div>
+          </motion.button>
+        ))}
+      </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div key={selected} initial={{opacity:0,y:15}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-15}} transition={{duration:0.3}}
+          className="rounded-xl p-5 border" style={{background:`${p.col}0a`,borderColor:`${p.col}30`}}>
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-3xl">{p.icon}</span>
+            <div><h3 className="font-black text-white">{p.name} Policy</h3><p className="text-white/45 text-xs mt-0.5">{p.desc}</p></div>
+          </div>
+
+          {selected===1&&(
+            <div className="mb-4 p-3 rounded-xl border" style={{borderColor:`${p.col}25`,background:`${p.col}08`}}>
+              <div className="flex justify-between text-xs font-mono text-white/50 mb-2">
+                <span>Epsilon (ε) = {epsilonVal.toFixed(2)}</span>
+                <span className="text-white/30">{epsilonVal<0.2?"More exploit":epsilonVal>0.6?"More explore":"Balanced"}</span>
+              </div>
+              <input type="range" min="0.05" max="1" step="0.05" value={epsilonVal} onChange={e=>setEpsilonVal(+e.target.value)}
+                className="w-full accent-teal-400" style={{accentColor:p.col}}/>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <div className="text-xs font-mono text-white/30 mb-2">Expected Reward</div>
+              <div className="h-2 rounded-full overflow-hidden" style={{background:"rgba(255,255,255,0.06)"}}>
+                <motion.div className="h-full rounded-full" style={{background:p.col}} initial={{width:0}} animate={{width:`${(p.reward+0.3)/1.3*100}%`}} transition={{duration:0.8}}/>
+              </div>
+              <div className="text-sm font-black font-mono mt-1" style={{color:p.col}}>{p.reward > 0 ? "+" : ""}{p.reward}</div>
+            </div>
+            <div>
+              <div className="text-xs font-mono text-white/30 mb-2">Exploration %</div>
+              <div className="h-2 rounded-full overflow-hidden" style={{background:"rgba(255,255,255,0.06)"}}>
+                <motion.div className="h-full rounded-full" style={{background:C.purple}} initial={{width:0}} animate={{width:`${p.explore}%`}} transition={{duration:0.8}}/>
+              </div>
+              <div className="text-sm font-black font-mono mt-1" style={{color:C.purple}}>{p.explore}%</div>
+            </div>
+          </div>
+
+          <motion.button onClick={runSimulation} disabled={simRunning} whileHover={!simRunning?{scale:1.04}:{}} whileTap={!simRunning?{scale:0.97}:{}}
+            className="w-full py-2.5 rounded-xl text-sm font-bold text-black"
+            style={{background:`linear-gradient(135deg,${p.col},${p.col}cc)`,opacity:simRunning?0.6:1}}>
+            {simRunning?"🔄 Simulating...":"🧪 Simulate 30 Rounds"}
+          </motion.button>
+
+          <AnimatePresence>
+            {simResult && (
+              <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} className="mt-3 grid grid-cols-3 gap-2">
+                {[{l:"Total Reward",v:simResult.reward,c:simResult.reward>0?C.green:C.coral},{l:"Win Rounds",v:simResult.wins,c:C.teal},{l:"Steps",v:simResult.steps,c:C.purple}].map(s=>(
+                  <div key={s.l} className="rounded-lg py-2 text-center border" style={{borderColor:`${s.c}25`,background:`${s.c}08`}}>
+                    <div className="text-[9px] font-mono text-white/30 mb-0.5">{s.l}</div>
+                    <div className="text-sm font-black font-mono" style={{color:s.c}}>{s.v}</div>
+                  </div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── ★ Q-TABLE EXPLAINER ─────────────────────────────────────────────────────
+function QTableExplainer() {
+  const [hover, setHover] = useState(null);
+  const [selectedCell, setSelectedCell] = useState(null);
+  const states = ["S1 (start)","S2","S3","S4 (trap)","S5 (goal)"];
+  const actions = ["↑","↓","←","→"];
+  const qVals = [
+    [0.12,-0.3,0.08,0.45],
+    [-0.1,0.6,0.2,-0.05],
+    [0.35,0.1,-0.2,0.78],
+    [-1,-1,-1,-1],
+    [1,1,1,1],
+  ];
+  const bestAction = (row) => {
+    let best=0,bestV=-Infinity;
+    qVals[row].forEach((v,i)=>{if(v>bestV){bestV=v;best=i;}});
+    return best;
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="overflow-x-auto rounded-xl border" style={{borderColor:C.border}}>
+        <table className="w-full text-sm min-w-[320px]">
+          <thead>
+            <tr style={{background:"rgba(255,255,255,0.03)"}}>
+              <th className="text-left px-4 py-3 text-xs font-mono text-white/30 uppercase tracking-widest">State</th>
+              {actions.map((a,ai)=><th key={a} className="px-4 py-3 text-xs font-mono text-white/30 uppercase tracking-widest">
+                <span style={{color:C.teal}}>{a}</span>
+              </th>)}
+              <th className="px-4 py-3 text-xs font-mono text-white/30 uppercase tracking-widest">Best</th>
+            </tr>
+          </thead>
+          <tbody>
+            {states.map((s,si)=>(
+              <motion.tr key={si} className="border-t transition-all cursor-pointer"
+                style={{borderColor:"rgba(255,255,255,0.04)",background:hover===si?"rgba(255,255,255,0.03)":"transparent"}}
+                onMouseEnter={()=>setHover(si)} onMouseLeave={()=>setHover(null)}>
+                <td className="px-4 py-3 text-white/60 text-xs font-mono font-bold">{s}</td>
+                {qVals[si].map((v,ai)=>(
+                  <td key={ai} className="px-4 py-3 text-center" onClick={()=>setSelectedCell({si,ai,v})}>
+                    <motion.span className="text-xs font-black font-mono px-2 py-1 rounded cursor-pointer"
+                      style={{background:bestAction(si)===ai?`${v>=0?C.green:C.coral}30`:`${v>=0?C.green:C.coral}18`,color:v>=0?C.green:C.coral,border:bestAction(si)===ai?`1px solid ${v>=0?C.green:C.coral}50`:"1px solid transparent"}}
+                      whileHover={{scale:1.15}}>
+                      {v.toFixed(2)}{bestAction(si)===ai&&" ★"}
+                    </motion.span>
+                  </td>
+                ))}
+                <td className="px-4 py-3 text-center">
+                  <span className="text-base" style={{color:C.amber}}>{actions[bestAction(si)]}</span>
+                </td>
+              </motion.tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <AnimatePresence>
+        {selectedCell&&(
+          <motion.div key={`${selectedCell.si}-${selectedCell.ai}`} initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0}}
+            className="rounded-xl p-4 border text-sm" style={{background:`${selectedCell.v>=0?C.green:C.coral}10`,borderColor:`${selectedCell.v>=0?C.green:C.coral}30`}}>
+            <div className="font-bold text-white mb-1">Q({states[selectedCell.si]}, {actions[selectedCell.ai]}) = {selectedCell.v.toFixed(2)}</div>
+            <p className="text-white/50 text-xs">This means: in state <span className="text-white/80">{states[selectedCell.si]}</span>, taking action <span className="text-white/80">{actions[selectedCell.ai]}</span> has expected future reward of <span style={{color:selectedCell.v>=0?C.green:C.coral}}>{selectedCell.v.toFixed(2)}</span>. {selectedCell.v>0?"A good choice!":"Avoid this action here."}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <p className="text-xs text-white/35 leading-relaxed">
+        ★ starred values = best action per state. Click any cell to inspect. Formula: <span className="font-mono" style={{color:C.teal}}>Q(s,a) ← Q(s,a) + α[r + γ·max Q(s',a') − Q(s,a)]</span>
+      </p>
+    </div>
+  );
+}

@@ -1,0 +1,2 @@
+app/logistic-regression/page.tsx(387,6): error TS2304: Cannot find name 'bias'.
+app/logistic-regression/page.tsx(419,52): error TS2304: Cannot find name 'bias'.
